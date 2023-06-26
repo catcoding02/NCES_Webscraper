@@ -2,7 +2,7 @@ import requests
 import re
 
 def get_county_school_dist_page(county_name: str, state_name:str):
-    state_name = {"01": 'Alabama', "02": 'Alaska', "04": 'Arizona',
+    state_dict = {"01": 'Alabama', "02": 'Alaska', "04": 'Arizona',
 "05": 'Arkansas', "06": 'California', "08": 'Colorado',
 "09": 'Connecticut', "10": 'Delaware', "11": 'District of Columbia',
 "12": 'Florida', "13": 'Georgia', "15": 'Hawaii', "16": 'Idaho',
@@ -20,7 +20,26 @@ def get_county_school_dist_page(county_name: str, state_name:str):
 "51": 'Virginia', "53": 'Washington', "54": "West Virginia",
 "55": 'Wisconsin', "56": 'Wyoming'
 }
-    county_school_dist_url = f"https://nces.ed.gov/ccd/districtsearch/district_list.asp?Search=1&details=1&State=25&County={county_name}&DistrictType=1&DistrictType=2&DistrictType=3&DistrictType=4&DistrictType=5&DistrictType=6&DistrictType=7&DistrictType=8&DistrictType=9&NumOfStudentsRange=more&NumOfSchoolsRange=more&DistrictPageNum=1"
+    state_number = list(state_dict.keys())[list(state_dict.values()).index(state_name)]
+    county_school_dist_url = f"https://nces.ed.gov/ccd/districtsearch/district_list.asp?Search=1&details=1&State={state_number}&County={county_name}&DistrictType=1&DistrictType=2&DistrictType=3&DistrictType=4&DistrictType=5&DistrictType=6&DistrictType=7&DistrictType=8&DistrictType=9&NumOfStudentsRange=more&NumOfSchoolsRange=more&DistrictPageNum=1"
+    first_page = requests.get(county_school_dist_url).text
+    with open("district_info.txt", "w") as district_info:
+        district_info.write(first_page)
+    num_of_pages = re.findall("<strong>&nbsp;&nbsp;Page <font color='#EDFFE8'>1&nbsp;of&nbsp;\d+", first_page)
+    if num_of_pages:
+        page_count = re.search('[0-9]+$', num_of_pages[0]).group(0)
+    else:
+        # for districts with 1 page, there is no text to display Page Number of Number, so page number is 1
+        page_count = "1"
+    if int(page_count) > 1:
+        for page_num in range(2, int(page_count) + 1):
+            add_page = requests.get(
+                f"https://nces.ed.gov/ccd/schoolsearch/school_list.asp?Search=1&DistrictID={district_id}&SchoolPageNum={page_num}").text
+            with open("district_info.txt", "a") as district_info:
+                district_info.write(add_page)
+        return
+def find_district_ids():
+
 def get_school_dist_page(district_id: str):
     """
     Gets school district school list page
