@@ -9,7 +9,7 @@ def get_school_dist_page(district_id: str):
     """
     district_profile_url = f"https://nces.ed.gov/ccd/schoolsearch/school_list.asp?Search=1&DistrictID={district_id}"
     first_page = requests.get(district_profile_url).text
-    with open("district_info.txt", "a") as district_info:
+    with open("district_info.txt", "w") as district_info:
         district_info.write(first_page)
     num_of_pages = re.findall("<strong>&nbsp;&nbsp;Page <font color='#EDFFE8'>1&nbsp;of&nbsp;\d+", first_page)
     if num_of_pages:
@@ -62,11 +62,14 @@ def get_school_eligibility(district_id: str, elig_list: list):
             elig_list.append(int(eligible))
     return
 
-def calculate_percent_elig(district_id: str, total_list: list, elig_list: list):
+def calculate_percent_elig(district_id: str, total_list: list, elig_list: list, county_agg: str, total_number_of_eligible_students_in_county: list, total_number_of_schools_in_county: list):
     """
     :param district_id: str: NCES District ID
     :param total_list: list: list to be appended with total students in each school in district
     :param elig_list: list: list to be appended with total eligible students in each school in district
+    :param county_agg: str: User response indicating yes or no for county aggregation
+    :param total_number_of_eligible_students_in_county: list: list holding all counts of eligible schools for districts entered
+    :param total_number_of_schools_in_county: list: list holding all total students in schools for districts entered
     :return: Nothing
     """
     with open("district_info.txt", "r") as district_info:
@@ -100,12 +103,18 @@ def calculate_percent_elig(district_id: str, total_list: list, elig_list: list):
             percent = elig_number / total_list[index]
             if percent >= 0.7:
                 count += 1
+        if county_agg == "1":
+            write_to_total_files("total_elig")
+            total_number_of_schools_in_county.append(total_number_of_schools)
         percent_qual = (count / total_number_of_schools) * 100
         print(f"{percent_qual:.2f}% of schools in this district meet or exceed 70% or more students participating in the National School Lunch Program.")
     else:
         print("Some school data is missing. Operation cannot be completed at this time.")
     return
 
+def write_to_total_files(total_filename, value):
+    with open(total_filename, "a") as total:
+        total.write(value)
 def clear_district_info(district_info):
     """
     Clears district info text from last use of program
@@ -122,16 +131,19 @@ def progress():
     """
     print("Working...")
     return
+
 def main():
-    clear_district_info("district_info.txt")
     elig = []
     total = []
+    total_number_of_eligible_students_in_county = []
+    total_number_of_schools_in_county = []
+    county_agg = input("Will you be reporting by county (option 1) or by district (option 2)? Choose option 1 or 2: ")
     district_id = input("What is the NCES District ID? ")
     dist_info = get_school_dist_page(district_id)
     progress()
     get_school_eligibility(district_id, elig)
     progress()
-    calculate_percent_elig(district_id, total, elig)
+    calculate_percent_elig(district_id, total, elig, total_number_of_eligible_students_in_county, total_number_of_schools_in_county)
 
 
 
